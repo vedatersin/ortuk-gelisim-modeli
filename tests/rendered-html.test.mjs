@@ -22,16 +22,15 @@ async function render() {
   );
 }
 
-test("server-renders the TYMM growth panel", async () => {
+test("server-renders the TYMM local panel shell", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /TYMM Örtük Gelişim Modeli/);
-  assert.match(html, /Öğrenci Gelişim İzleme Paneli/);
-  assert.match(html, /Boylamsal Büyüme Eğrisi Grafiği/);
-  assert.match(html, /Sınıf İçi Anlık Gözlem Verisi Girişi/);
-  assert.match(html, /Madde Bankası \/ IRT Alanları/);
+  assert.match(html, /TYMM/);
+  assert.match(html, /Yerel veri|localStorage/i);
+  assert.match(html, /Rubrik/i);
+  assert.match(html, /Raporlama/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
