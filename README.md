@@ -1,0 +1,2 @@
+# ortuk-gelisim-modeli
+
