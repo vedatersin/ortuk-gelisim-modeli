@@ -39,7 +39,8 @@ body {
 
 button,
 select,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -577,6 +578,9 @@ th:first-child {
 
 .form-grid input,
 .form-grid textarea,
+.form-grid select,
+.step-fields input,
+.step-fields select,
 .score-input {
   background: #fff;
   border: 1px solid var(--border);
@@ -585,6 +589,93 @@ th:first-child {
   min-height: 32px;
   padding: 6px 8px;
   width: 100%;
+}
+
+.form-grid select,
+.step-fields select {
+  min-height: 32px;
+}
+
+.course-form .wide-field,
+.step-fields .wide-field {
+  grid-column: 1 / -1;
+}
+
+.process-flow {
+  display: grid;
+  gap: 14px;
+  margin: 14px 18px 0;
+}
+
+.process-flow .panel {
+  margin: 0;
+}
+
+.process-step {
+  min-width: 0;
+}
+
+.step-fields {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 12px;
+}
+
+.step-fields label {
+  color: #33445f;
+  display: grid;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.step-fields input[readonly] {
+  background: #f3f6fa;
+  color: #40516a;
+}
+
+.level-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 12px 0;
+}
+
+.level-legend span {
+  align-items: center;
+  background: #f5f8fc;
+  border: 1px solid #d6dfeb;
+  color: #33445f;
+  display: flex;
+  gap: 7px;
+  min-height: 32px;
+  padding: 5px 9px;
+}
+
+.level-legend strong {
+  align-items: center;
+  background: var(--ink-blue);
+  color: #fff;
+  display: inline-flex;
+  height: 21px;
+  justify-content: center;
+  width: 21px;
+}
+
+.data-entry-table th small {
+  color: #d9e5f2;
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.level-select {
+  background: #fff;
+  border: 1px solid var(--border);
+  color: #172338;
+  min-height: 32px;
+  min-width: 132px;
+  padding: 5px 7px;
 }
 
 .form-grid textarea {
@@ -693,6 +784,34 @@ th:first-child {
   padding: 14px 12px;
 }
 
+.report-feedback {
+  margin-bottom: 14px;
+}
+
+.feedback-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 12px;
+}
+
+.feedback-grid article {
+  border: 1px solid #d8e0ea;
+  border-top: 4px solid var(--orange);
+  min-height: 138px;
+  padding: 11px;
+}
+
+.feedback-grid strong {
+  color: var(--ink-blue);
+}
+
+.feedback-grid p {
+  color: #34445b;
+  line-height: 1.5;
+  margin: 8px 0 0;
+}
+
 .report-bars div {
   align-items: center;
   display: grid;
@@ -703,12 +822,18 @@ th:first-child {
 .report-bars span {
   color: var(--ink-blue);
   font-weight: 700;
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .report-bars strong {
   background: linear-gradient(90deg, var(--line-blue), #6d91bd);
   display: block;
+  grid-column: 2;
+  grid-row: 1;
   height: 16px;
+  justify-self: start;
+  z-index: 1;
 }
 
 .report-bars div::after {
@@ -717,13 +842,15 @@ th:first-child {
   grid-column: 2;
   grid-row: 1;
   height: 16px;
-  z-index: -1;
+  z-index: 0;
 }
 
 .report-bars em {
   color: #33445f;
   font-style: normal;
   font-weight: 700;
+  grid-column: 3;
+  grid-row: 1;
   text-align: right;
 }
 
@@ -791,6 +918,11 @@ th:first-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .step-fields,
+  .feedback-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .analysis-layout,
   .entry-layout {
     grid-template-columns: 1fr;
@@ -821,7 +953,9 @@ th:first-child {
   .quick-grid,
   .form-grid,
   .rubric-summary,
-  .sidebar nav {
+  .sidebar nav,
+  .step-fields,
+  .feedback-grid {
     grid-template-columns: 1fr;
   }
 

@@ -31,11 +31,12 @@ type SchoolInfo = {
 
 type CourseInfo = {
   course: string;
-  domain: string;
   grade: string;
-  itemDifficulty: string;
-  discrimination: string;
-  anchorStatus: string;
+  applicationPeriod: string;
+  taskCode: string;
+  taskType: string;
+  scale: string;
+  learningOutcome: string;
 };
 
 type RegistrationDraft = {
@@ -52,20 +53,28 @@ type AppState = {
   selectedCourse: string;
   students: Student[];
   rubricByStudent: Record<string, [number, number, number, number]>;
+  levelByStudent: Record<string, number>;
   school: SchoolInfo;
   course: CourseInfo;
   evidenceNotes: Record<string, string>;
 };
 
 const STORAGE_KEY = "tymm-ortuk-gelisim-modeli-v2";
-const terms = ["T0 Güz", "T1 Kış", "T2 Bahar", "T3 Yıl Sonu"];
 const scoreKeys = ["T0", "T1", "T2", "T3"] as const;
-const cohortMeans = [199.8, 214.2, 230.0, 244.8];
+const courseOptions = ["Matematik", "Fen Bilimleri", "Türkçe", "Yabancı Dil", "Sosyal Bilgiler"];
+const assessmentNames = [
+  "Hazırbulunuşluk Değerlendirmesi",
+  "Performans Görevi",
+  "Süreç İzleme Değerlendirmesi",
+  "Yıl Sonu Gelişim Değerlendirmesi",
+];
+const chartAssessmentNames = ["Hazırbulunuşluk", "Performans Görevi", "Süreç İzleme", "Yıl Sonu"];
+const cohortMeans = [24.9, 35.1, 46.4, 57.0];
 
 const pageDefinitions: Array<{ id: PageId; label: string; code: string }> = [
   { id: "home", label: "Giriş Ekranı", code: "ANA" },
   { id: "school", label: "Okul Bilgileri", code: "OKL" },
-  { id: "data-entry", label: "Bilgi Giriş İşlemleri", code: "BGI" },
+  { id: "data-entry", label: "Süreç ve Kanıt Girişi", code: "SKG" },
   { id: "registration", label: "Kayıt İşlemleri", code: "KYT" },
   { id: "courses", label: "Ders İşlemleri", code: "DRS" },
   { id: "growth", label: "Örtük Gelişim", code: "OGM" },
@@ -74,21 +83,21 @@ const pageDefinitions: Array<{ id: PageId; label: string; code: string }> = [
 ];
 
 const defaultStudents: Student[] = [
-  { id: "OGR-3", schoolNo: "5003", className: "5-A", scores: [187.3, 200.0, 217.6, 225.1], percentile: 32 },
-  { id: "OGR-4", schoolNo: "5004", className: "5-A", scores: [177.9, 200.8, 221.5, 247.2], percentile: 95 },
-  { id: "OGR-7", schoolNo: "5007", className: "5-A", scores: [202.8, 196.2, 219.3, 227.9], percentile: 11 },
-  { id: "OGR-8", schoolNo: "5008", className: "5-A", scores: [187.8, 203.6, 238.7, 243.4], percentile: 73 },
-  { id: "OGR-9", schoolNo: "5009", className: "5-A", scores: [192.6, 211.7, 222.7, 240.9], percentile: 54 },
-  { id: "OGR-10", schoolNo: "5010", className: "5-A", scores: [203.4, 214.7, 222.5, 240.4], percentile: 30 },
-  { id: "OGR-12", schoolNo: "5012", className: "5-A", scores: [185.7, 197.1, 227.5, 253.7], percentile: 94 },
-  { id: "OGR-14", schoolNo: "5014", className: "5-A", scores: [232.4, 234.7, 254.3, 283.4], percentile: 62 },
-  { id: "OGR-198", schoolNo: "5198", className: "5-A", scores: [195.0, 236.9, 250.8, 294.8], percentile: 100 },
-  { id: "OGR-1", schoolNo: "5001", className: "5-A", scores: [200.5, null, 245.7, null] },
-  { id: "OGR-2", schoolNo: "5002", className: "5-A", scores: [197.6, null, 239.5, 251.3] },
-  { id: "OGR-5", schoolNo: "5005", className: "5-A", scores: [null, 200.8, 233.9, 242.4] },
-  { id: "OGR-6", schoolNo: "5006", className: "5-A", scores: [201.5, 212.4, 238.1, null] },
-  { id: "OGR-11", schoolNo: "5011", className: "5-A", scores: [208.7, null, null, 259.7] },
-  { id: "OGR-13", schoolNo: "5013", className: "5-A", scores: [195.8, 207.8, null, null] },
+  { id: "OGR-3", schoolNo: "5003", className: "5-A", scores: [15.9, 25.0, 37.6, 42.9], percentile: 32 },
+  { id: "OGR-4", schoolNo: "5004", className: "5-A", scores: [9.2, 25.6, 40.4, 58.7], percentile: 95 },
+  { id: "OGR-7", schoolNo: "5007", className: "5-A", scores: [27.0, 22.3, 38.8, 44.9], percentile: 11 },
+  { id: "OGR-8", schoolNo: "5008", className: "5-A", scores: [16.3, 27.6, 52.6, 56.0], percentile: 73 },
+  { id: "OGR-9", schoolNo: "5009", className: "5-A", scores: [19.7, 33.4, 41.2, 54.2], percentile: 54 },
+  { id: "OGR-10", schoolNo: "5010", className: "5-A", scores: [27.4, 35.5, 41.1, 53.9], percentile: 30 },
+  { id: "OGR-12", schoolNo: "5012", className: "5-A", scores: [14.8, 22.9, 44.6, 63.4], percentile: 94 },
+  { id: "OGR-14", schoolNo: "5014", className: "5-A", scores: [48.1, 49.8, 63.8, 84.6], percentile: 62 },
+  { id: "OGR-198", schoolNo: "5198", className: "5-A", scores: [21.4, 51.4, 61.3, 92.7], percentile: 100 },
+  { id: "OGR-1", schoolNo: "5001", className: "5-A", scores: [25.4, null, 57.6, null] },
+  { id: "OGR-2", schoolNo: "5002", className: "5-A", scores: [23.3, null, 53.2, 61.6] },
+  { id: "OGR-5", schoolNo: "5005", className: "5-A", scores: [null, 25.6, 49.2, 55.3] },
+  { id: "OGR-6", schoolNo: "5006", className: "5-A", scores: [26.1, 33.9, 52.2, null] },
+  { id: "OGR-11", schoolNo: "5011", className: "5-A", scores: [31.2, null, null, 67.6] },
+  { id: "OGR-13", schoolNo: "5013", className: "5-A", scores: [22.0, 30.6, null, null] },
 ];
 
 const defaultRubric: Record<string, [number, number, number, number]> = Object.fromEntries(
@@ -98,14 +107,19 @@ const defaultRubric: Record<string, [number, number, number, number]> = Object.f
   ]),
 );
 
+const defaultLevels: Record<string, number> = Object.fromEntries(
+  defaultStudents.map((student, index) => [student.id, (index % 4) + 1]),
+);
+
 const defaultState: AppState = {
   page: "growth",
   selectedStudentId: "OGR-4",
   selectedTerm: "2026-2027",
   selectedClass: "5-A",
-  selectedCourse: "Matematik Okuryazarlığı",
+  selectedCourse: "Matematik",
   students: defaultStudents,
   rubricByStudent: defaultRubric,
+  levelByStudent: defaultLevels,
   school: {
     institutionCode: "IOK10007",
     institutionName: "Türkiye Yüzyılı Maarif Modeli Pilot Okulu",
@@ -115,27 +129,28 @@ const defaultState: AppState = {
     teacher: "Öğretmen",
   },
   course: {
-    course: "Matematik Okuryazarlığı",
-    domain: "Boylamsal bilişsel gelişim",
+    course: "Matematik",
     grade: "5-A",
-    itemDifficulty: "b parametresi",
-    discrimination: "a parametresi",
-    anchorStatus: "Dikey ölçekleme için çapa madde",
+    applicationPeriod: "Performans Görevi",
+    taskCode: "5. Sınıf Problem Çözme Görevi - Form A",
+    taskType: "Performans Görevi",
+    scale: "4'lü Analitik Rubrik (1-4 Düzey)",
+    learningOutcome: "M.5.1. Sayılar ve İşlemler / Veri İnceleme",
   },
   evidenceNotes: {
-    T0: "Hazırbulunuşluk izleme sınavı yapıldı.",
-    T1: "Bağlam temelli performans görevi işlendi.",
-    T2: "Alt öğrenme alanı analizi tamamlandı.",
-    T3: "Yıl sonu ölçümü ile slope değerlendirildi.",
+    T0: "Hazırbulunuşluk değerlendirmesi tamamlandı.",
+    T1: "Bağlam temelli performans görevi uygulandı.",
+    T2: "Süreç içi izleme ve alt öğrenme alanı değerlendirmesi tamamlandı.",
+    T3: "Yıl sonu gelişim değerlendirmesi tamamlandı.",
   },
 };
 
-const evidence = [
-  ["T0", "Hazırbulunuşluk izleme sınavı", "Başlangıç noktası"],
-  ["T1", "Gereksinim modelleme bağlam temelli performans görevi", "Öğrenme kanıtı"],
-  ["T2", "Süreç içi izleme ve alt öğrenme alanı analizi", "Boylamsal ölçüm"],
-  ["T3", "Yıl sonu ölçümü ve gelişim hızı değerlendirmesi", "Slope kestirimi"],
-];
+const evidence = scoreKeys.map((key, index) => ({
+  key,
+  title: assessmentNames[index],
+  period: ["Güz başlangıcı", "1. dönem", "2. dönem", "Yıl sonu"][index],
+  tag: ["Başlangıç düzeyi", "Otantik öğrenme kanıtı", "Süreç içi gelişim", "Gelişim değerlendirmesi"][index],
+}));
 
 const rubricRows = [
   "Bilgi ve beceri yetkinliği",
@@ -146,8 +161,8 @@ const rubricRows = [
 
 const modules = [
   ["Modül A", "Yapılandırılmış veri girişi", "Rubrik ve nitel/nicel kanıt ekranları"],
-  ["Modül B", "Madde havuzu ve IRT altyapısı", "Güçlük, ayırt edicilik ve çapa madde alanları"],
-  ["Modül C", "Psikometrik analiz motoru", "Intercept, slope ve FIML hesaplama"],
+  ["Modül B", "Değerlendirme aracı havuzu", "Önceden hazırlanmış görev, test ve açık uçlu soru seçenekleri"],
+  ["Modül C", "Gelişim analiz altyapısı", "Puan değişimi, eksik değerlendirme ve gelişim eğilimi"],
   ["e-Okul SSO", "Entegrasyon katmanı", "Yetkilendirme, sınıf eşleştirme ve nakil koruması"],
   ["Dashboard", "Görsel raporlama", "Öğretmen mikro ekranı ve ÖDM/Bakanlık makro ekranı"],
 ];
@@ -192,37 +207,72 @@ function getStudentMath(student: Student) {
   };
 }
 
+function getActionFeedback(student: Student, course: string) {
+  const stats = getStudentMath(student);
+  const change = Math.abs(stats.growth).toFixed(1);
+
+  if (stats.trend === "Artan") {
+    return {
+      authentic: `${course} kapsamındaki performans ve süreç değerlendirmelerinde ${change} puanlık gelişim görülmüştür. Öğrenci, öğrendiklerini görev bağlamında kullanmaya başlamıştır.`,
+      teacher: "Bir sonraki uygulamada aynı öğrenme çıktısını daha karmaşık bir bağlamda yeniden gözlemleyin ve çözüm sürecini kısa bir öğrenci açıklamasıyla kanıtlayın.",
+      parent: "Evde günlük yaşamdan bir problem seçerek çocuğunuzdan çözüm yolunu açıklamasını isteyin; yalnızca sonucu değil, nasıl düşündüğünü de konuşun.",
+    };
+  }
+
+  if (stats.trend === "Azalan") {
+    return {
+      authentic: `${course} değerlendirmelerinde önceki uygulamaya göre ${change} puanlık gerileme görülmüştür. Bulguyu tek bir puanla değil, görev kanıtlarıyla birlikte ele alın.`,
+      teacher: "Öğrenme çıktısını daha küçük adımlara ayırın, kısa bir yeniden öğretim uygulayın ve benzer bir görevle yakın izleme yapın.",
+      parent: "Kısa ve düzenli çalışma aralıkları oluşturun; çocuğunuzdan yaptığı işlemi veya verdiği yanıtı kendi cümleleriyle açıklamasını isteyin.",
+    };
+  }
+
+  return {
+    authentic: `${course} değerlendirmelerinde mevcut düzey korunmaktadır. Yeni bir öğrenme kanıtı ile öğrencinin bilgiyi farklı bir bağlamda kullanıp kullanamadığı gözlenmelidir.`,
+    teacher: "Aynı kazanımı farklı bir görev türüyle yeniden değerlendirin ve öğrencinin kullandığı stratejileri karşılaştırın.",
+    parent: "Evde yapılan kısa çalışmalarda doğru cevaptan önce düşünme yolunu anlatmasını destekleyin ve ilerlemeyi küçük örneklerle görünür kılın.",
+  };
+}
+
+function normalizeScore(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  if (value > 100) return Math.round(Math.max(0, Math.min(100, ((value - 165) / 140) * 100)) * 10) / 10;
+  return Math.round(Math.max(0, Math.min(100, value)) * 10) / 10;
+}
+
 function normalizeLoadedState(value: Partial<AppState>): AppState {
+  const students = Array.isArray(value.students) && value.students.length > 0
+    ? value.students.map((student) => ({
+        ...student,
+        scores: student.scores.map(normalizeScore) as Student["scores"],
+      }))
+    : defaultStudents;
+  const loadedCourse = { ...defaultState.course, ...value.course };
+  const course = {
+    ...loadedCourse,
+    course: courseOptions.includes(loadedCourse.course) ? loadedCourse.course : defaultState.course.course,
+    applicationPeriod: assessmentNames.includes(loadedCourse.applicationPeriod)
+      ? loadedCourse.applicationPeriod
+      : defaultState.course.applicationPeriod,
+  };
+
   return {
     ...defaultState,
     ...value,
     school: { ...defaultState.school, ...value.school },
-    course: { ...defaultState.course, ...value.course },
+    course,
     evidenceNotes: { ...defaultState.evidenceNotes, ...value.evidenceNotes },
-    students: Array.isArray(value.students) && value.students.length > 0 ? value.students : defaultStudents,
+    selectedCourse: courseOptions.includes(value.selectedCourse ?? "") ? value.selectedCourse! : defaultState.selectedCourse,
+    students,
     rubricByStudent: { ...defaultRubric, ...value.rubricByStudent },
+    levelByStudent: { ...defaultLevels, ...value.levelByStudent },
   };
 }
 
 export default function Home() {
-  const [state, setState] = useState<AppState>(() => {
-    if (typeof window === "undefined") return defaultState;
-
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      const hash = window.location.hash.replace("#", "") as PageId;
-      const loadedState = saved ? normalizeLoadedState(JSON.parse(saved) as Partial<AppState>) : defaultState;
-
-      if (pageDefinitions.some((page) => page.id === hash)) {
-        return { ...loadedState, page: hash };
-      }
-
-      return loadedState;
-    } catch {
-      return defaultState;
-    }
-  });
-  const [saveStatus, setSaveStatus] = useState("Yerel veri hazır");
+  const [state, setState] = useState<AppState>(defaultState);
+  const [storageReady, setStorageReady] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("Yerel veri hazırlanıyor");
   const [registrationDraft, setRegistrationDraft] = useState<RegistrationDraft>({
     id: "OGR-YENI",
     schoolNo: "5999",
@@ -230,9 +280,32 @@ export default function Home() {
   });
 
   useEffect(() => {
+    const loadStorage = window.setTimeout(() => {
+      try {
+        const saved = window.localStorage.getItem(STORAGE_KEY);
+        const hash = window.location.hash.replace("#", "") as PageId;
+        const loadedState = saved ? normalizeLoadedState(JSON.parse(saved) as Partial<AppState>) : defaultState;
+
+        if (pageDefinitions.some((page) => page.id === hash)) {
+          setState({ ...loadedState, page: hash });
+        } else {
+          setState(loadedState);
+        }
+      } catch {
+        setState(defaultState);
+      }
+      setStorageReady(true);
+      setSaveStatus("Yerel veri hazır");
+    }, 0);
+
+    return () => window.clearTimeout(loadStorage);
+  }, []);
+
+  useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     window.location.hash = state.page;
-  }, [state]);
+  }, [state, storageReady]);
 
   const selected = state.students.find((student) => student.id === state.selectedStudentId) ?? state.students[0];
   const selectedRubric = state.rubricByStudent[selected.id] ?? [1, 1, 1, 1];
@@ -240,8 +313,8 @@ export default function Home() {
   const rubricAverage = selectedRubric.reduce((sum, value) => sum + value, 0) / selectedRubric.length;
   const classStudents = state.students.filter((student) => student.className === state.selectedClass);
   const completedCount = state.students.filter((student) => student.scores.every((score) => typeof score === "number")).length;
-  const min = 165;
-  const max = 305;
+  const min = 0;
+  const max = 100;
   const studentPath = linePath(selected.scores, min, max);
   const cohortPath = linePath(cohortMeans, min, max);
 
@@ -261,7 +334,11 @@ export default function Home() {
 
   function updateCourse(field: keyof CourseInfo, value: string) {
     setSaveStatus("Kaydedildi");
-    setState((current) => ({ ...current, course: { ...current.course, [field]: value } }));
+    setState((current) => ({
+      ...current,
+      selectedCourse: field === "course" ? value : current.selectedCourse,
+      course: { ...current.course, [field]: value },
+    }));
   }
 
   function updateStudentScore(studentId: string, scoreIndex: number, value: string) {
@@ -272,9 +349,17 @@ export default function Home() {
       students: current.students.map((student) => {
         if (student.id !== studentId) return student;
         const scores = [...student.scores] as Student["scores"];
-        scores[scoreIndex] = Number.isFinite(parsed) ? parsed : null;
+        scores[scoreIndex] = Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed!)) : null;
         return { ...student, scores };
       }),
+    }));
+  }
+
+  function updateStudentLevel(studentId: string, value: number) {
+    setSaveStatus("Kaydedildi");
+    setState((current) => ({
+      ...current,
+      levelByStudent: { ...current.levelByStudent, [studentId]: Math.max(1, Math.min(4, value)) },
     }));
   }
 
@@ -318,6 +403,7 @@ export default function Home() {
       ...current,
       students: [...current.students, student],
       rubricByStudent: { ...current.rubricByStudent, [id]: [1, 1, 1, 1] },
+      levelByStudent: { ...current.levelByStudent, [id]: 1 },
       selectedStudentId: id,
       selectedClass: student.className,
       page: "data-entry",
@@ -407,8 +493,14 @@ export default function Home() {
           <DataEntryScreen
             students={classStudents.length ? classStudents : state.students}
             selectedStudentId={selected.id}
+            selectedCourse={state.selectedCourse}
+            selectedClass={state.selectedClass}
+            course={state.course}
+            levels={state.levelByStudent}
             onSelect={(id) => updateState({ selectedStudentId: id })}
             onScoreChange={updateStudentScore}
+            onLevelChange={updateStudentLevel}
+            onCourseChange={updateCourse}
           />
         )}
 
@@ -431,6 +523,7 @@ export default function Home() {
         {state.page === "growth" && (
           <GrowthScreen
             selected={selected}
+            selectedCourse={state.selectedCourse}
             stats={stats}
             selectedRubric={selectedRubric}
             rubricAverage={rubricAverage}
@@ -459,6 +552,7 @@ export default function Home() {
           <ReportsScreen
             students={state.students}
             selected={selected}
+            selectedCourse={state.selectedCourse}
             rubricByStudent={state.rubricByStudent}
           />
         )}
@@ -491,9 +585,7 @@ function FilterPanel({
         <label>
           Ders
           <select value={state.selectedCourse} onChange={(event) => onState({ selectedCourse: event.target.value })}>
-            <option>Matematik Okuryazarlığı</option>
-            <option>Türkçe Okuryazarlığı</option>
-            <option>Fen Bilimleri</option>
+            {courseOptions.map((course) => <option key={course}>{course}</option>)}
           </select>
         </label>
         <label>
@@ -535,8 +627,8 @@ function HomeScreen({
     <>
       <section className="status-grid" aria-label="Sistem özeti">
         <article className="status-card"><span>Öğrenci Kaydı</span><strong>{students.length}</strong><small>Yapay veri setinden aktarılan panel</small></article>
-        <article className="status-card"><span>Tam Gözlem</span><strong>{completedCount}</strong><small>T0-T3 eksiksiz ölçüm</small></article>
-        <article className="status-card"><span>Dengesiz Panel</span><strong>{students.length - completedCount}</strong><small>FIML için korunur</small></article>
+        <article className="status-card"><span>Tam Değerlendirme</span><strong>{completedCount}</strong><small>Dört değerlendirmesi tamamlanan öğrenci</small></article>
+        <article className="status-card"><span>Eksik Değerlendirme</span><strong>{students.length - completedCount}</strong><small>Tamamlanması beklenen öğrenci kaydı</small></article>
         <article className="status-card"><span>Rubrik Ortalaması</span><strong>{rubricAverage.toFixed(2)}</strong><small>Seçili öğrenci ölçeği</small></article>
       </section>
       <section className="panel">
@@ -595,57 +687,126 @@ const schoolLabels: Record<keyof SchoolInfo, string> = {
 function DataEntryScreen({
   students,
   selectedStudentId,
+  selectedCourse,
+  selectedClass,
+  course,
+  levels,
   onSelect,
   onScoreChange,
+  onLevelChange,
+  onCourseChange,
 }: {
   students: Student[];
   selectedStudentId: string;
+  selectedCourse: string;
+  selectedClass: string;
+  course: CourseInfo;
+  levels: Record<string, number>;
   onSelect: (id: string) => void;
   onScoreChange: (studentId: string, scoreIndex: number, value: string) => void;
+  onLevelChange: (studentId: string, value: number) => void;
+  onCourseChange: (field: keyof CourseInfo, value: string) => void;
 }) {
   return (
-    <section className="panel">
-      <header className="panel-title"><strong>Bilgi Giriş İşlemleri - T0/T1/T2/T3</strong><span>Öğrenci puanları lokalde kalır</span></header>
-      <div className="table-wrap">
-        <table className="class-table data-entry-table">
-          <thead>
-            <tr>
-              <th>Okul No</th>
-              <th>Öğrenci ID</th>
-              <th>T0 Güz</th>
-              <th>T1 Kış</th>
-              <th>T2 Bahar</th>
-              <th>T3 Yıl Sonu</th>
-              <th>Gözlem</th>
-              <th>Durum</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map((student) => {
-              const stats = getStudentMath(student);
-              return (
-                <tr key={student.id} className={student.id === selectedStudentId ? "selected-row" : ""}>
-                  <td>{student.schoolNo}</td>
-                  <td><button type="button" onClick={() => onSelect(student.id)}>{student.id}</button></td>
-                  {student.scores.map((score, index) => (
-                    <td key={scoreKeys[index]}>
-                      <input
-                        aria-label={`${student.id} ${scoreKeys[index]}`}
-                        className="score-input"
-                        inputMode="decimal"
-                        value={score ?? ""}
-                        onChange={(event) => onScoreChange(student.id, index, event.target.value)}
-                      />
+    <section className="process-flow" aria-label="Süreç ve kanıt girişi">
+      <article className="panel process-step">
+        <header className="panel-title"><strong>1. Bağlam Seçimi</strong><span>Ders ve uygulama dönemi</span></header>
+        <div className="step-fields">
+          <label>Ders<input value={selectedCourse} readOnly /></label>
+          <label>Sınıf / Şube<input value={selectedClass} readOnly /></label>
+          <label>
+            Uygulama Dönemi
+            <select value={course.applicationPeriod} onChange={(event) => onCourseChange("applicationPeriod", event.target.value)}>
+              {assessmentNames.map((name) => <option key={name}>{name}</option>)}
+            </select>
+          </label>
+        </div>
+      </article>
+
+      <article className="panel process-step">
+        <header className="panel-title"><strong>2. Ölçme Görevi ve Rubrik Seçimi</strong><span>Hazır değerlendirme havuzu</span></header>
+        <div className="step-fields">
+          <label>
+            Değerlendirme Aracı
+            <select value={course.taskCode} onChange={(event) => onCourseChange("taskCode", event.target.value)}>
+              <option>5. Sınıf Problem Çözme Görevi - Form A</option>
+              <option>MAT-5.1.2 Bağlam Temelli Görev</option>
+              <option>Süreç İzleme Testi - Form A</option>
+              <option>Açık Uçlu Soru Havuzu - Form A</option>
+            </select>
+          </label>
+          <label>
+            Öğrenme Kanıtı / Görev Türü
+            <select value={course.taskType} onChange={(event) => onCourseChange("taskType", event.target.value)}>
+              <option>Performans Görevi</option>
+              <option>Süreç İzleme Testi</option>
+              <option>Açık Uçlu Soru Havuzu</option>
+            </select>
+          </label>
+          <label>
+            Değerlendirme Biçimi / Skala
+            <select value={course.scale} onChange={(event) => onCourseChange("scale", event.target.value)}>
+              <option>4&apos;lü Analitik Rubrik (1-4 Düzey)</option>
+              <option>Ham Puan (0-100)</option>
+            </select>
+          </label>
+          <label className="wide-field">Öğrenme Çıktısı / Alt Alan<input value={course.learningOutcome} onChange={(event) => onCourseChange("learningOutcome", event.target.value)} /></label>
+        </div>
+      </article>
+
+      <article className="panel process-step">
+        <header className="panel-title"><strong>3. Sınıf Not ve Düzey Girişi</strong><span>0-100 puan ve 1-4 gelişim düzeyi</span></header>
+        <div className="level-legend" aria-label="Düzey açıklamaları">
+          <span><strong>1</strong> Başlangıç</span><span><strong>2</strong> Gelişmekte</span><span><strong>3</strong> Yetkin</span><span><strong>4</strong> İleri</span>
+        </div>
+        <div className="table-wrap">
+          <table className="class-table data-entry-table">
+            <thead>
+              <tr>
+                <th>Okul No</th>
+                <th>Öğrenci ID</th>
+                {assessmentNames.map((name) => <th key={name}>{name}<small>0-100</small></th>)}
+                <th>Düzey</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {students.map((student) => {
+                const stats = getStudentMath(student);
+                return (
+                  <tr key={student.id} className={student.id === selectedStudentId ? "selected-row" : ""}>
+                    <td>{student.schoolNo}</td>
+                    <td><button type="button" onClick={() => onSelect(student.id)}>{student.id}</button></td>
+                    {student.scores.map((score, index) => (
+                      <td key={scoreKeys[index]}>
+                        <input
+                          aria-label={`${student.id} ${assessmentNames[index]} puanı`}
+                          className="score-input"
+                          inputMode="decimal"
+                          min="0"
+                          max="100"
+                          type="number"
+                          value={score ?? ""}
+                          onChange={(event) => onScoreChange(student.id, index, event.target.value)}
+                        />
+                      </td>
+                    ))}
+                    <td>
+                      <select className="level-select" aria-label={`${student.id} gelişim düzeyi`} value={levels[student.id] ?? 1} onChange={(event) => onLevelChange(student.id, Number(event.target.value))}>
+                        <option value="1">1 - Başlangıç</option>
+                        <option value="2">2 - Gelişmekte</option>
+                        <option value="3">3 - Yetkin</option>
+                        <option value="4">4 - İleri</option>
+                      </select>
                     </td>
-                  ))}
-                  <td>{stats.observed}/4</td>
-                  <td>{stats.trend}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                    <td>{stats.observed}/4 tamamlandı</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </article>
     </section>
   );
 }
@@ -696,24 +857,56 @@ function CoursesScreen({
   return (
     <>
       <section className="panel form-panel">
-        <header className="panel-title"><strong>Ders İşlemleri</strong><span>Madde bankası ve IRT alanları</span></header>
-        <div className="form-grid">
-          {Object.entries(course).map(([field, value]) => (
-            <label key={field}>
-              {courseLabels[field as keyof CourseInfo]}
-              <input value={value} onChange={(event) => onChange(field as keyof CourseInfo, event.target.value)} />
-            </label>
-          ))}
+        <header className="panel-title"><strong>Ders ve Değerlendirme Aracı İşlemleri</strong><span>Öğretmen görünümü</span></header>
+        <div className="form-grid course-form">
+          <label>
+            Ders
+            <select value={course.course} onChange={(event) => onChange("course", event.target.value)}>
+              {courseOptions.map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </label>
+          <label>Sınıf / Şube<input value={course.grade} onChange={(event) => onChange("grade", event.target.value)} /></label>
+          <label>
+            Uygulama Dönemi
+            <select value={course.applicationPeriod} onChange={(event) => onChange("applicationPeriod", event.target.value)}>
+              {assessmentNames.map((item) => <option key={item}>{item}</option>)}
+            </select>
+          </label>
+          <label>
+            Değerlendirme Aracı
+            <select value={course.taskCode} onChange={(event) => onChange("taskCode", event.target.value)}>
+              <option>5. Sınıf Problem Çözme Görevi - Form A</option>
+              <option>MAT-5.1.2 Bağlam Temelli Görev</option>
+              <option>Süreç İzleme Testi - Form A</option>
+              <option>Açık Uçlu Soru Havuzu - Form A</option>
+            </select>
+          </label>
+          <label>
+            Öğrenme Kanıtı / Görev Türü
+            <select value={course.taskType} onChange={(event) => onChange("taskType", event.target.value)}>
+              <option>Performans Görevi</option>
+              <option>Süreç İzleme Testi</option>
+              <option>Açık Uçlu Soru Havuzu</option>
+            </select>
+          </label>
+          <label>
+            Değerlendirme Biçimi / Skala
+            <select value={course.scale} onChange={(event) => onChange("scale", event.target.value)}>
+              <option>4&apos;lü Analitik Rubrik (1-4 Düzey)</option>
+              <option>Ham Puan (0-100)</option>
+            </select>
+          </label>
+          <label className="wide-field">Öğrenme Çıktısı / Alt Alan<input value={course.learningOutcome} onChange={(event) => onChange("learningOutcome", event.target.value)} /></label>
         </div>
       </section>
       <section className="panel system-panel">
-        <header className="panel-title"><strong>Madde Bankası / IRT Alanları</strong><span>Çapa madde düzeni</span></header>
+        <header className="panel-title"><strong>Değerlendirme Aracı Özeti</strong><span>Seçimler yerel olarak kaydedilir</span></header>
         <table className="item-bank">
-          <thead><tr><th>Alan</th><th>Parametre</th><th>Durum</th></tr></thead>
+          <thead><tr><th>Öğretmen Alanı</th><th>Seçili Değer</th><th>Kullanım</th></tr></thead>
           <tbody>
-            <tr><td>Güçlük</td><td>{course.itemDifficulty}</td><td>Madde havuzu</td></tr>
-            <tr><td>Ayırt edicilik</td><td>{course.discrimination}</td><td>IRT altyapısı</td></tr>
-            <tr><td>Dikey ölçekleme</td><td>Anchor items</td><td>{course.anchorStatus}</td></tr>
+            <tr><td>Öğrenme Kanıtı / Görev Türü</td><td>{course.taskType}</td><td>Görev havuzundan seçim</td></tr>
+            <tr><td>Değerlendirme Biçimi / Skala</td><td>{course.scale}</td><td>Sınıf not ve düzey girişi</td></tr>
+            <tr><td>Öğrenme Çıktısı / Alt Alan</td><td>{course.learningOutcome}</td><td>Gelişim raporuyla ilişkilendirme</td></tr>
           </tbody>
         </table>
       </section>
@@ -721,17 +914,9 @@ function CoursesScreen({
   );
 }
 
-const courseLabels: Record<keyof CourseInfo, string> = {
-  course: "Ders",
-  domain: "Alan",
-  grade: "Sınıf / Şube",
-  itemDifficulty: "Güçlük",
-  discrimination: "Ayırt Edicilik",
-  anchorStatus: "Çapa Madde",
-};
-
 function GrowthScreen({
   selected,
+  selectedCourse,
   stats,
   selectedRubric,
   rubricAverage,
@@ -744,6 +929,7 @@ function GrowthScreen({
   onSelect,
 }: {
   selected: Student;
+  selectedCourse: string;
   stats: ReturnType<typeof getStudentMath>;
   selectedRubric: [number, number, number, number];
   rubricAverage: number;
@@ -755,18 +941,20 @@ function GrowthScreen({
   evidenceNotes: Record<string, string>;
   onSelect: (id: string) => void;
 }) {
+  const feedback = getActionFeedback(selected, selectedCourse);
+
   return (
     <>
       <section className="status-grid" aria-label="Öğrenci bütüncül durum kartları">
-        <article className="status-card"><span>Bilişsel Yetenek Skoru</span><strong>{scoreText(stats.latest)}</strong><small>Akran ortalaması: {cohortMeans[3].toFixed(1)}</small></article>
-        <article className="status-card"><span>Gelişim Hızı (Slope)</span><strong>{stats.slope.toFixed(1)}</strong><small>{stats.trend} yörünge - yüzdeklik: {selected.percentile ?? "FIML"}</small></article>
-        <article className="status-card"><span>Başlangıç Noktası</span><strong>{scoreText(stats.intercept)}</strong><small>Intercept için ilk gözlenen ölçüm</small></article>
+        <article className="status-card"><span>Güncel Gelişim Puanı</span><strong>{scoreText(stats.latest)}</strong><small>100 üzerinden - akran ortalaması: {cohortMeans[3].toFixed(1)}</small></article>
+        <article className="status-card"><span>Puan Değişimi</span><strong>{stats.growth >= 0 ? "+" : ""}{stats.growth.toFixed(1)}</strong><small>{stats.trend} gelişim eğilimi</small></article>
+        <article className="status-card"><span>Başlangıç Puanı</span><strong>{scoreText(stats.intercept)}</strong><small>İlk tamamlanan değerlendirme</small></article>
         <article className="status-card"><span>Öğrenme Kanıtı</span><strong>{stats.observed}/4</strong><small>Rubrik ortalaması: {rubricAverage.toFixed(2)}</small></article>
       </section>
 
       <section className="analysis-layout">
         <article className="panel growth-panel">
-          <header className="panel-title"><strong>Ana Alan: Boylamsal Büyüme Eğrisi Grafiği</strong><span>Yetenek Puanı / RIT</span></header>
+          <header className="panel-title"><strong>Boylamsal Gelişim Grafiği</strong><span>Puan / 100</span></header>
           <svg viewBox="0 0 548 286" className="growth-chart" role="img" aria-label="Öğrenci ve akran büyüme eğrisi">
             <line x1="46" y1="248" x2="514" y2="248" className="axis" />
             <line x1="46" y1="36" x2="46" y2="248" className="axis" />
@@ -779,18 +967,18 @@ function GrowthScreen({
                 <text x={46 + index * 156} y={232 - ((value - min) / (max - min)) * 188}>{Math.round(value)}</text>
               </g>
             ) : null)}
-            {terms.map((term, index) => <text key={term} x={46 + index * 156} y="272" className="term-label">{term}</text>)}
+            {chartAssessmentNames.map((term, index) => <text key={term} x={46 + index * 156} y="272" className="term-label">{term}</text>)}
           </svg>
           <div className="legend"><span><i className="student-swatch" /> Öğrencinin gerçek gelişimi</span><span><i className="cohort-swatch" /> Türkiye/Akran büyüme normu</span></div>
         </article>
 
         <article className="panel message-panel">
-          <header className="panel-title"><strong>Pedagojik Mesaj</strong></header>
-          <p>{selected.id} için {terms[0]}-{terms[3]} aralığında {stats.trend.toLowerCase()} yörünge görülmektedir. Boylamsal ölçümler, tek puan yerine gelişim hızını izleme amacıyla değerlendirilmiştir.</p>
-          <dl>
-            <div><dt>Panel veri</dt><dd>Dengesiz panel ölçümleri korunur</dd></div>
-            <div><dt>Eksik veri</dt><dd>FIML hesaplama motoruna aktarılır</dd></div>
-            <div><dt>Karar desteği</dt><dd>Erken uyarı ve farklılaştırılmış öğretim</dd></div>
+          <header className="panel-title"><strong>Eyleme Dönük Geri Bildirim</strong></header>
+          <p>{selected.id} için dört değerlendirme boyunca {stats.trend.toLowerCase()} gelişim eğilimi görülmektedir.</p>
+          <dl className="feedback-list">
+            <div><dt>Otantik değerlendirme</dt><dd>{feedback.authentic}</dd></div>
+            <div><dt>Öğretmen eylemi</dt><dd>{feedback.teacher}</dd></div>
+            <div><dt>Veli önerisi</dt><dd>{feedback.parent}</dd></div>
           </dl>
         </article>
       </section>
@@ -812,12 +1000,12 @@ function EvidenceTimeline({ notes }: { notes: Record<string, string> }) {
     <section className="panel evidence-panel">
       <header className="panel-title"><strong>Etkinlik Zaman Tüneli</strong><span>Öğrenme kanıtları simgeleri</span></header>
       <div className="timeline">
-        {evidence.map(([time, title, tag]) => (
-          <article key={time}>
-            <strong>{time}</strong>
-            <span>{title}</span>
-            <small>{tag}</small>
-            <em>{notes[time]}</em>
+        {evidence.map((item) => (
+          <article key={item.key}>
+            <strong>{item.title}</strong>
+            <span>{item.period}</span>
+            <small>{item.tag}</small>
+            <em>{notes[item.key]}</em>
           </article>
         ))}
       </div>
@@ -831,7 +1019,7 @@ function StudentTable({ students, selectedId, onSelect }: { students: Student[];
       <header className="panel-title"><strong>Sınıf Listesi - Seçilen Alanlara Göre Ders Gelişim Girişi</strong><span>Yapay veri seti: 500 öğrenci</span></header>
       <div className="table-wrap">
         <table className="class-table">
-          <thead><tr><th>Öğrenci ID</th><th>T0</th><th>T1</th><th>T2</th><th>T3</th><th>Gözlem</th><th>Yörünge</th></tr></thead>
+          <thead><tr><th>Öğrenci ID</th>{chartAssessmentNames.map((name) => <th key={name}>{name}</th>)}<th>Gözlem</th><th>Gelişim Eğilimi</th></tr></thead>
           <tbody>
             {students.map((student) => {
               const stats = getStudentMath(student);
@@ -882,12 +1070,12 @@ function RubricScreen({
         <div className="rubric-total">Rubrik ortalaması: <strong>{rubricAverage.toFixed(2)}</strong></div>
       </article>
       <article className="panel form-panel">
-        <header className="panel-title"><strong>Öğrenme Kanıtı Notları</strong><span>T0-T3</span></header>
+        <header className="panel-title"><strong>Öğrenme Kanıtı Notları</strong><span>Değerlendirme bazında kaydedilir</span></header>
         <div className="form-grid single">
-          {scoreKeys.map((key) => (
-            <label key={key}>
-              {key} kanıt açıklaması
-              <textarea value={evidenceNotes[key]} onChange={(event) => onEvidenceChange(key, event.target.value)} />
+          {evidence.map((item) => (
+            <label key={item.key}>
+              {item.title} kanıt açıklaması
+              <textarea value={evidenceNotes[item.key]} onChange={(event) => onEvidenceChange(item.key, event.target.value)} />
             </label>
           ))}
         </div>
@@ -899,10 +1087,12 @@ function RubricScreen({
 function ReportsScreen({
   students,
   selected,
+  selectedCourse,
   rubricByStudent,
 }: {
   students: Student[];
   selected: Student;
+  selectedCourse: string;
   rubricByStudent: Record<string, [number, number, number, number]>;
 }) {
   const reportRows = students.map((student) => {
@@ -912,23 +1102,32 @@ function ReportsScreen({
     return { student, stats, average };
   });
   const rising = reportRows.filter((row) => row.stats.trend === "Artan").length;
+  const selectedFeedback = getActionFeedback(selected, selectedCourse);
 
   return (
     <>
       <section className="status-grid" aria-label="Rapor özeti">
         <article className="status-card"><span>Artan Yörünge</span><strong>{rising}</strong><small>Öğrenci sayısı</small></article>
-        <article className="status-card"><span>Akran Normu T3</span><strong>{cohortMeans[3].toFixed(1)}</strong><small>Yapay veri ortalaması</small></article>
+        <article className="status-card"><span>Yıl Sonu Akran Ortalaması</span><strong>{cohortMeans[3].toFixed(1)}</strong><small>100 puanlık sistem</small></article>
         <article className="status-card"><span>Seçili Öğrenci</span><strong>{selected.id}</strong><small>{getStudentMath(selected).trend} yörünge</small></article>
         <article className="status-card"><span>Eksik Veri</span><strong>{students.length - students.filter((student) => student.scores.every((score) => typeof score === "number")).length}</strong><small>Dengesiz panel</small></article>
       </section>
+      <section className="panel report-feedback">
+        <header className="panel-title"><strong>Seçili Öğrenci Gelişim Raporu</strong><span>{selected.id} - {selectedCourse}</span></header>
+        <div className="feedback-grid">
+          <article><strong>Otantik Değerlendirme</strong><p>{selectedFeedback.authentic}</p></article>
+          <article><strong>Öğretmen İçin Sonraki Adım</strong><p>{selectedFeedback.teacher}</p></article>
+          <article><strong>Veli Önerisi</strong><p>{selectedFeedback.parent}</p></article>
+        </div>
+      </section>
       <section className="panel">
-        <header className="panel-title"><strong>Görsel Raporlama - Mikro Öğretmen Ekranı</strong><span>ÖDM/Bakanlık için özetlenebilir</span></header>
+        <header className="panel-title"><strong>Öğrenci Puan Değişimleri</strong><span>İlk ve son değerlendirme farkı</span></header>
         <div className="report-bars">
           {reportRows.slice(0, 12).map((row) => (
             <div key={row.student.id}>
               <span>{row.student.id}</span>
-              <strong style={{ width: `${Math.max(6, Math.min(100, row.stats.slope * 3))}%` }} />
-              <em>{row.stats.slope.toFixed(1)}</em>
+              <strong style={{ width: `${Math.max(6, Math.min(100, Math.abs(row.stats.growth)))}%` }} />
+              <em>{row.stats.growth >= 0 ? "+" : ""}{row.stats.growth.toFixed(1)}</em>
             </div>
           ))}
         </div>
@@ -937,13 +1136,13 @@ function ReportsScreen({
         <header className="panel-title"><strong>Rapor Tablosu</strong><span>Gelişim + rubrik</span></header>
         <div className="table-wrap">
           <table className="class-table">
-            <thead><tr><th>Öğrenci</th><th>Son Puan</th><th>Slope</th><th>Yörünge</th><th>Rubrik</th><th>Gözlem</th></tr></thead>
+            <thead><tr><th>Öğrenci</th><th>Son Puan / 100</th><th>Puan Değişimi</th><th>Gelişim Eğilimi</th><th>Rubrik</th><th>Gözlem</th></tr></thead>
             <tbody>
               {reportRows.map((row) => (
                 <tr key={row.student.id}>
                   <td>{row.student.id}</td>
                   <td>{scoreText(row.stats.latest)}</td>
-                  <td>{row.stats.slope.toFixed(1)}</td>
+                  <td>{row.stats.growth >= 0 ? "+" : ""}{row.stats.growth.toFixed(1)}</td>
                   <td>{row.stats.trend}</td>
                   <td>{row.average.toFixed(2)}</td>
                   <td>{row.stats.observed}/4</td>
