@@ -425,8 +425,7 @@ export default function Home() {
           <div className="brand-block">
             <div className="brand-mark">TR</div>
             <div>
-              <p className="eyebrow">Milli Eğitim Bakanlığı</p>
-              <h1>TYMM Öğrenci Bütüncül Gelişim Paneli</h1>
+              <h1>Milli Eğitim Bakanlığı <span>•</span> TYMM Öğrenci Bütüncül Gelişim Paneli</h1>
             </div>
           </div>
           <div className="header-badges">
@@ -437,9 +436,9 @@ export default function Home() {
         </header>
 
         <nav className="view-tabs" aria-label="Ana görünümler">
-          <button className={state.page === "data-entry" ? "view-tab active" : "view-tab"} onClick={() => setPage("data-entry")} type="button">Öğrenci Kanıt ve Puan Girişi</button>
+          <button className={state.page === "data-entry" ? "view-tab active" : "view-tab"} onClick={() => setPage("data-entry")} type="button">Öğrenci Kanıt &amp; Puan Girişi</button>
           <button className={state.page === "growth" ? "view-tab active" : "view-tab"} onClick={() => setPage("growth")} type="button">Sınıf Gelişim ve Yörünge İnceleme</button>
-          <button className={state.page === "reports" ? "view-tab active" : "view-tab"} onClick={() => setPage("reports")} type="button">Bireysel Gelişim Raporu ve Veli Karnesi</button>
+          <button className={state.page === "reports" ? "view-tab active" : "view-tab"} onClick={() => setPage("reports")} type="button">Bireysel Gelişim Raporu &amp; Veli Karnesi</button>
         </nav>
 
         <nav className="module-nav" aria-label="Yönetim ekranları">
@@ -696,10 +695,15 @@ function DataEntryScreen({
   onLevelChange: (studentId: string, value: number) => void;
   onCourseChange: (field: keyof CourseInfo, value: string) => void;
 }) {
+  const classAverages = scoreKeys.map((_, scoreIndex) => {
+    const scores = students.map((student) => student.scores[scoreIndex]).filter((score): score is number => score !== null);
+    return scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null;
+  });
+
   return (
     <section className="process-flow" aria-label="Süreç ve kanıt girişi">
       <article className="panel process-step">
-        <header className="panel-title"><strong>1. Bağlam Seçimi</strong><span>Ders ve uygulama dönemi</span></header>
+        <header className="panel-title"><strong><span className="step-pill">1</span> Değerlendirme Bağlamı ve Görev Seçimi</strong><span>Ders ve uygulama dönemi</span></header>
         <div className="step-fields">
           <label>Ders<input value={selectedCourse} readOnly /></label>
           <label>Sınıf / Şube<input value={selectedClass} readOnly /></label>
@@ -713,7 +717,7 @@ function DataEntryScreen({
       </article>
 
       <article className="panel process-step">
-        <header className="panel-title"><strong>2. Ölçme Görevi ve Rubrik Seçimi</strong><span>Hazır değerlendirme havuzu</span></header>
+        <header className="panel-title"><strong><span className="step-pill">2</span> Ölçme Görevi ve Rubrik Seçimi</strong><span>Hazır değerlendirme havuzu</span></header>
         <div className="step-fields">
           <label>
             Değerlendirme Aracı
@@ -748,7 +752,20 @@ function DataEntryScreen({
       </article>
 
       <article className="panel process-step">
-        <header className="panel-title"><strong>3. Sınıf Not ve Düzey Girişi</strong><span>0-100 puan ve 1-4 gelişim düzeyi</span></header>
+        <header className="panel-title"><strong><span className="step-pill">3</span> Boylamsal Etkinlik ve Gelişim Zaman Tüneli</strong><span>Sınıf ortalaması • 100&apos;lük puan ölçeği</span></header>
+        <div className="timeline class-timeline">
+          {evidence.map((item, index) => (
+            <article className={index === 0 ? "completed" : index === 1 ? "current" : "upcoming"} key={item.key}>
+              <small>{index + 1}. Değerlendirme • {item.period}</small>
+              <strong>{item.title}</strong>
+              <span>{classAverages[index] === null ? "Henüz puan girilmedi" : `Sınıf ortalaması: ${classAverages[index]?.toFixed(1)} / 100`}</span>
+            </article>
+          ))}
+        </div>
+      </article>
+
+      <article className="panel process-step">
+        <header className="panel-title"><strong><span className="step-pill">4</span> Öğrenci Puan ve Bütüncül Yetkinlik Girişi</strong><span>0-100 puan ve 1-4 gelişim düzeyi</span></header>
         <div className="level-legend" aria-label="Düzey açıklamaları">
           <span><strong>1</strong> Başlangıç</span><span><strong>2</strong> Gelişmekte</span><span><strong>3</strong> Yetkin</span><span><strong>4</strong> İleri</span>
         </div>
@@ -785,7 +802,7 @@ function DataEntryScreen({
                       </td>
                     ))}
                     <td>
-                      <select className="level-select" aria-label={`${student.id} gelişim düzeyi`} value={levels[student.id] ?? 1} onChange={(event) => onLevelChange(student.id, Number(event.target.value))}>
+                      <select className={`level-select level-${levels[student.id] ?? 1}`} aria-label={`${student.id} gelişim düzeyi`} value={levels[student.id] ?? 1} onChange={(event) => onLevelChange(student.id, Number(event.target.value))}>
                         <option value="1">1 - Başlangıç</option>
                         <option value="2">2 - Gelişmekte</option>
                         <option value="3">3 - Yetkin</option>
@@ -798,6 +815,10 @@ function DataEntryScreen({
               })}
             </tbody>
           </table>
+        </div>
+        <div className="footer-actions">
+          <span>Tüm değişiklikler yerel taslağa otomatik kaydedilir.</span>
+          <button className="primary-action" type="button" onClick={() => onLevelChange(selectedStudentId, levels[selectedStudentId] ?? 1)}>Verileri Onayla ve Yörüngeyi Güncelle</button>
         </div>
       </article>
     </section>
