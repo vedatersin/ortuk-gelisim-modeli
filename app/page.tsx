@@ -420,50 +420,42 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar" aria-label="Kurum menüsü">
-        <div className="sidebar-title">Kurum İşlemleri</div>
-        <label className="period-label" htmlFor="period">Eğitim Öğretim Dönemi</label>
-        <select
-          id="period"
-          className="period-select"
-          value={state.selectedTerm}
-          onChange={(event) => updateState({ selectedTerm: event.target.value })}
-        >
-          <option>2026-2027</option>
-          <option>2027-2028</option>
-        </select>
-        <nav>
+      <section className="workspace app-container">
+        <header className="topbar">
+          <div className="brand-block">
+            <div className="brand-mark">TR</div>
+            <div>
+              <p className="eyebrow">Milli Eğitim Bakanlığı</p>
+              <h1>TYMM Öğrenci Bütüncül Gelişim Paneli</h1>
+            </div>
+          </div>
+          <div className="header-badges">
+            <span className="header-badge">{state.selectedTerm} Eğitim Öğretim Yılı</span>
+            <span className="header-badge">Ders Öğretmeni Modu</span>
+            <span className="save-badge">{saveStatus}</span>
+          </div>
+        </header>
+
+        <nav className="view-tabs" aria-label="Ana görünümler">
+          <button className={state.page === "data-entry" ? "view-tab active" : "view-tab"} onClick={() => setPage("data-entry")} type="button">Öğrenci Kanıt ve Puan Girişi</button>
+          <button className={state.page === "growth" ? "view-tab active" : "view-tab"} onClick={() => setPage("growth")} type="button">Sınıf Gelişim ve Yörünge İnceleme</button>
+          <button className={state.page === "reports" ? "view-tab active" : "view-tab"} onClick={() => setPage("reports")} type="button">Bireysel Gelişim Raporu ve Veli Karnesi</button>
+        </nav>
+
+        <nav className="module-nav" aria-label="Yönetim ekranları">
           {pageDefinitions.map((item) => (
-            <button
-              className={item.id === state.page ? "menu-item active" : "menu-item"}
-              key={item.id}
-              onClick={() => setPage(item.id)}
-              type="button"
-            >
-              <span className="menu-dot" />
+            <button className={item.id === state.page ? "module-link active" : "module-link"} key={item.id} onClick={() => setPage(item.id)} type="button">
               {item.label}
             </button>
           ))}
         </nav>
-      </aside>
 
-      <section className="workspace">
-        <header className="topbar">
-          <div className="brand-mark">TR</div>
+        <div className="page-heading">
           <div>
-            <p className="eyebrow">Milli Eğitim Bakanlığı Okul Yönetim Bilgi Sistemi</p>
-            <h1>Türkiye Yüzyılı Maarif Modeli - Öğrenci Gelişim İzleme Paneli</h1>
+            <span>{pageDefinitions.find((page) => page.id === state.page)?.code}10007</span>
+            <h2>{pageDefinitions.find((page) => page.id === state.page)?.label}</h2>
           </div>
-          <div className="session-box">
-            <span>Bağlantı Sonu</span>
-            <strong>09:33</strong>
-            <small>{saveStatus}</small>
-          </div>
-        </header>
-
-        <div className="module-strip">
-          <strong>{pageDefinitions.find((page) => page.id === state.page)?.label}</strong>
-          <span>{pageDefinitions.find((page) => page.id === state.page)?.code}10007</span>
+          <small>Veriler bu cihazda otomatik kaydedilir</small>
         </div>
 
         <FilterPanel
@@ -574,13 +566,10 @@ function FilterPanel({
 
   return (
     <section className="filter-panel" aria-label="Filtreler">
-      <div className="tool-icons" aria-hidden="true">
-        <span>+</span>
-        <span>□</span>
-        <span>▣</span>
-        <span>⌕</span>
-        <span>↻</span>
-      </div>
+      <header className="filter-heading">
+        <strong>Görünüm Bağlamı</strong>
+        <span>Ders, dönem, sınıf ve öğrenci seçimi</span>
+      </header>
       <div className="field-grid">
         <label>
           Ders
@@ -632,7 +621,7 @@ function HomeScreen({
         <article className="status-card"><span>Rubrik Ortalaması</span><strong>{rubricAverage.toFixed(2)}</strong><small>Seçili öğrenci ölçeği</small></article>
       </section>
       <section className="panel">
-        <header className="panel-title"><strong>Modül Kısayolları</strong><span>Sol menü ile aynı ekranlara gider</span></header>
+        <header className="panel-title"><strong>Modül Kısayolları</strong><span>Tüm çalışma ekranlarına hızlı erişim</span></header>
         <div className="quick-grid">
           {pageDefinitions.slice(1).map((page) => (
             <button key={page.id} type="button" onClick={() => openPage(page.id)}>
@@ -751,6 +740,10 @@ function DataEntryScreen({
             </select>
           </label>
           <label className="wide-field">Öğrenme Çıktısı / Alt Alan<input value={course.learningOutcome} onChange={(event) => onCourseChange("learningOutcome", event.target.value)} /></label>
+        </div>
+        <div className="task-sync-banner">
+          <span><strong>Öğrenme Çıktısı:</strong> {course.learningOutcome}</span>
+          <span className="task-badge">Merkezi standart havuzla eşleşti</span>
         </div>
       </article>
 
@@ -1000,8 +993,8 @@ function EvidenceTimeline({ notes }: { notes: Record<string, string> }) {
     <section className="panel evidence-panel">
       <header className="panel-title"><strong>Etkinlik Zaman Tüneli</strong><span>Öğrenme kanıtları simgeleri</span></header>
       <div className="timeline">
-        {evidence.map((item) => (
-          <article key={item.key}>
+        {evidence.map((item, index) => (
+          <article className={index === 0 ? "completed" : index === 1 ? "current" : "upcoming"} key={item.key}>
             <strong>{item.title}</strong>
             <span>{item.period}</span>
             <small>{item.tag}</small>
@@ -1115,9 +1108,9 @@ function ReportsScreen({
       <section className="panel report-feedback">
         <header className="panel-title"><strong>Seçili Öğrenci Gelişim Raporu</strong><span>{selected.id} - {selectedCourse}</span></header>
         <div className="feedback-grid">
-          <article><strong>Otantik Değerlendirme</strong><p>{selectedFeedback.authentic}</p></article>
-          <article><strong>Öğretmen İçin Sonraki Adım</strong><p>{selectedFeedback.teacher}</p></article>
-          <article><strong>Veli Önerisi</strong><p>{selectedFeedback.parent}</p></article>
+          <article className="authentic-feedback"><strong>Otantik Değerlendirme</strong><p>{selectedFeedback.authentic}</p></article>
+          <article className="teacher-feedback"><strong>Öğretmen İçin Sonraki Adım</strong><p>{selectedFeedback.teacher}</p></article>
+          <article className="parent-feedback"><strong>Veli Önerisi</strong><p>{selectedFeedback.parent}</p></article>
         </div>
       </section>
       <section className="panel">
